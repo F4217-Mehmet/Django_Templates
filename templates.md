@@ -92,8 +92,10 @@ students içerisinde templates klasörü oluşturuyorum. İsim önemli, bu şeki
     <p>{{ desc }}</p>
     <p>{{ number }}</p>
     <hr>
+
+**iterable objelere .notation ile ulaşıyoruz. [] kullanmıyoruz**
     <p>{{ list1 }}</p>
-    <p>{{ list1.1 }}</p>
+    <p>{{ list1.1 }}</p> 
     <p>{{ list1.3.1 }}</p> 
     <hr>
     <p>{{ dict1}}</p>
@@ -200,4 +202,118 @@ h1{
     color: red;
 }
 
+**MODELS** 
+**student/models.py'da Student classı oluşturuyorum:**
+**HATIRLATMA NOTU**
 
+**blank=True** form ile alakalı, formda ilgili yer boş bırakılabilir demek.
+
+**null=True** db ile ilgili. Charfield'larda blanktrue demek yeterli ancak integer ve datefieldlarda blanktrue dediysen, nulltrue da demek zorundasın.
+
+from django.db import models
+
+
+class Student(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    number = models.SmallIntegerField()
+    image = models.ImageField(upload_to='students', blank=True)
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name}'
+
+**pillow** yükleyip **migration** ve **migrate** yapıyorum.
+pip install pillow
+python manage.py makemigrations
+python manage.py migrate
+
+**adminde görmek için admin.py'a ekliyorum**
+
+from django.contrib import admin
+from .models import Student
+
+admin.site.register(Student)
+
+settings.py'da **media url** ekliyorum
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+**main urls'de**
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+
+urlpatterns = [
+    ...
+    ...
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+**artık media klasörünün içerisindeki fotoğrafları studentsa ekleyip görebilirim**
+
+**şimdi bir html sayfasında öğrencileri listeliyorum**
+students/view'de:
+
+from .models import Student
+
+def student_list(request):
+    students = Student.objects.all() **db'den bu veriyi çekiyorum**
+    context = {
+        'students': students
+    }
+
+    return render(request, 'students/student_list.html', context)
+
+**templates/students/student_list**
+
+{% extends 'base.html' %}
+{% block title %}
+student list
+{% endblock title %}
+
+{% block body %} **base.html'de bunu body olarak tanımlamıştım**
+<h2>Student List</h2>
+<br>
+    <ul>
+        {% for student in students|dictsort:"number" %}  **numaraya göre sıraladım**
+            <li>{{ student.number }} - {{ student }}</li>
+        {% endfor %}          
+    </ul>
+{% endblock body %}
+
+**students/urls.py**
+
+urlpatterns = [
+    ... ,
+    path('list/', student_list, name='student_list'),
+
+**student create işlemi yapacağım**
+
+**templates içine forms.py file'ı açtım**
+from django import forms
+from .models import Student
+
+
+class StudentForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = '__all__'
+
+**view'de**
+
+def student_add(request):
+    form = StudentForm()
+    if request.method == 'POST':
+        # print('POST :', request.POST)
+        # print('fıles :', request.FILES)
+        form = StudentForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            form.save()
+            return redirect('student_list')
+
+    context = {
+        'form': form
+    }
+
+    return render(request, 'students/student_add.html', context)
