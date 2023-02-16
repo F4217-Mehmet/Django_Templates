@@ -8,7 +8,7 @@ from .forms import StudentForm
 def home(request):
 
     context = {
-        'title': 'clarusway',
+        'title': 'Coredinat',
         'desc': 'This is a description',
         'number': 1111,
         'list1': ['a', 1, 'b', ['c', 2]],
