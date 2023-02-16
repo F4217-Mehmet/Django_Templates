@@ -282,6 +282,9 @@ student list
 {% endblock body %}
 
 **students/urls.py**
+from .views import (
+    ...,
+    student_list,
 
 urlpatterns = [
     ... ,
@@ -289,7 +292,8 @@ urlpatterns = [
 
 **student create işlemi yapacağım**
 
-**templates içine forms.py file'ı açtım**
+**templates içine forms.py file'ı açtım, genellikle (%99) models form kullanıyoruz. djangonun sağladığı kolaylık model form ile otomatik bir html formu oluşturuyor ve validationları yapıyor.**
+
 from django import forms
 from .models import Student
 
@@ -317,3 +321,184 @@ def student_add(request):
     }
 
     return render(request, 'students/student_add.html', context)
+
+**students/templates/students/student_add.html** oluşturuyorum
+
+{% extends 'base.html' %}
+{% block title %}
+student add
+{% endblock title %}
+
+{% block body %}
+<h2>Student Add</h2>
+
+**form değişkenini burada yakalıyoruz. img yada file upload edeceksek enctype=... belirtmemiz gerekiyor.**
+    <form action="" method="POST" enctype="multipart/form-data"> 
+        {% csrf_token %} 
+
+**post işlemi yapıyorsak csrf tagini kullandığımızda django bizim için her istek için ayrı bir token üretiyor ve istek ile birlikte form ile beraber server tarafına gönderiyor ve eşleşme olur ok alırsa db'de işlem yapmamıza izin veriyor**
+        {{ form.as_p }} **paragraf olarak göster demek, as_div, as_table gibi alternatifler de mevcut**
+        <button type="submit">Add</button> **add butonu ekledim**
+    </form>
+{% endblock body %}
+
+**students/urls.py**
+from .views import (
+    ...,
+    ...,
+    student_add,
+
+urlpatterns = [
+    ...,
+    ...,
+    path('add/', student_add, name='student_add'),
+
+**student update** yapıyorum
+
+**views**
+from django.shortcuts import ..., ..., get_object_or_404
+
+def student_update(request, id):
+    student = get_object_or_404(Student, id=id)
+    form = StudentForm(instance=student)
+
+    if request.method == 'POST':
+        form = StudentForm(request.POST, request.FILES, instance=student)
+
+        if form.is_valid():
+            form.save()
+            return redirect('student_list')
+
+    context = {
+        'form': form
+    }
+    return render(request, 'students/student_update.html', context)
+
+**urls.py**
+    from .views import (
+        ...,
+        ...,
+        ...,
+        student_update,
+
+    urlpatterns = [
+        ...,
+        ...,
+        ...,
+        path('update/<int:id>/', student_update, name='student_update'),
+**spesifik bir obje çektiğim için id'sini de koydum**
+
+**students/templates/students/student_update.html** oluşturuyorum
+
+{% extends 'base.html' %}
+{% block title %}
+student update
+{% endblock title %}
+
+{% block body %}
+<h2>Student Update</h2>
+    <form action="" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Update</button>
+    </form>
+{% endblock body %}
+
+**student_detail** yapıtyorum isim soyisimle birlikte img de olsun istiyorum
+
+**views**
+
+def student_detail(request, id):
+    student = get_object_or_404(Student, id=id)
+    context = {
+        'student': student
+    }
+
+    return render(request, 'students/student_detail.html', context)
+
+**urls.py**
+from .views import (
+        ...,
+        ...,
+        ...,
+        ...,
+        student_detail,
+
+    urlpatterns = [
+        ...,
+        ...,
+        ...,
+        ...,
+
+path('<int:id>/', student_detail, name='student_detail'),
+
+**students/templates/students/student_detail.html** oluşturuyorum
+
+{% extends 'base.html' %}
+{% block title %}
+student
+{% endblock title %}
+
+{% block body %}
+<h2>Student Info</h2>
+    
+    {% if student.image %}
+    <img src="{{ student.image.url }}" alt=""> <hr>
+    {% endif %}
+        
+    
+    {{ student.first_name }} <br>
+    {{ student.last_name }} <br>
+    {{ student.number }}
+{% endblock body %}
+
+**student_delete**
+**views**
+
+def student_delete(request, id):
+    student = get_object_or_404(Student, id=id)
+
+    if request.method == 'POST':
+        student.delete()
+        return redirect('student_list')
+
+    context = {
+        'student': student
+    }
+    return render(request, 'students/student_delete.html', context)
+
+**urls.py**
+from .views import (
+        ...,
+        ...,
+        ...,
+        ...,
+        student_delete,
+
+    urlpatterns = [
+        ...,
+        ...,
+        ...,
+        ...,
+
+path('delete/<int:id>/', student_delete, name='student_delete'),
+
+**students/templates/students/student_delete.html** oluşturuyorum
+
+{% extends 'base.html' %}
+{% block title %}
+student delete
+{% endblock title %}
+
+{% block body %}
+<h2>Student Delete</h2>
+<form action="" method="POST">
+    {% csrf_token %}
+    <p>Are you sure delete {{ student }} !!</p>
+    <button type="submit">YES</button>
+</form>
+<a href="{% url 'student_list' %}">
+    <button>No</button>
+</a>
+{% endblock body %}
+
